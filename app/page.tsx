@@ -200,16 +200,26 @@ export default function Home() {
 
           <div className="flex flex-col justify-center">
             <p className="text-lg leading-8 text-white/65">
-              JihadForge exists to create high-performance clothing for Muslims
-              who want comfort, style, and modesty in one product. The goal is
-              not just to make clothing that covers—it is to create clothing
-              that people are proud to train, swim, travel, and live in.
-            </p>
+  JihadForge was founded on the belief that true strength begins with
+  discipline. In Islam, the word <strong>Jihad</strong> includes the
+  personal struggle to improve oneself to grow in character,
+  perseverance, and purpose.
+</p>
 
-            <p className="mt-6 text-lg leading-8 text-white/65">
-              We are starting with men&apos;s activewear and plan to expand into
-              women&apos;s modest performance clothing in the future.
-            </p>
+<p className="mt-6 text-lg leading-8 text-white/65">
+  Our mission is to create premium modest athletic wear that supports
+  an active lifestyle while reflecting values of discipline,
+  excellence, and respect. Whether you're training in the gym,
+  running outdoors, or spending time with family at the beach, our
+  goal is to design clothing that performs without compromising your
+  principles.
+</p>
+
+<p className="mt-6 text-lg leading-8 text-white/65">
+  We believe modesty and performance belong together. Every product
+  we create is designed with purpose, quality, and the pursuit of
+  becoming better every day.
+</p>
           </div>
         </div>
       </section>
