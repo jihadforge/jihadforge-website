@@ -230,9 +230,7 @@ export default function Home() {
           <div className="grid gap-8 lg:grid-cols-2">
             <p className="text-lg leading-8 text-black/65">
               JihadForge was founded on the belief that true strength begins with
-  discipline. In Islam, the word <strong>Jihad</strong> includes the
-  personal struggle to improve oneself to grow in character,
-  perseverance, and purpose.
+  discipline. In Islam, the word <strong>Jihad</strong> means the personal struggle to improve oneself—to grow in character, perseverance, and purpose.
             </p>
             <p className="text-lg leading-8 text-black/65">
               Our mission is to create premium modest athletic wear that supports
