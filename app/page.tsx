@@ -229,12 +229,18 @@ export default function Home() {
           </div>
           <div className="grid gap-8 lg:grid-cols-2">
             <p className="text-lg leading-8 text-black/65">
-              JihadForge is built around the personal struggle to improve—to
-              grow in character, perseverance, discipline, and purpose.
+              JihadForge was founded on the belief that true strength begins with
+  discipline. In Islam, the word <strong>Jihad</strong> includes the
+  personal struggle to improve oneself to grow in character,
+  perseverance, and purpose.
             </p>
             <p className="text-lg leading-8 text-black/65">
-              We create premium modest athletic wear that supports an active
-              lifestyle without forcing men to compromise their principles.
+              Our mission is to create premium modest athletic wear that supports
+  an active lifestyle while reflecting values of discipline,
+  excellence, and respect. Whether you're training in the gym,
+  running outdoors, or spending time with family at the beach, our
+  goal is to design clothing that performs without compromising your
+  principles.
             </p>
           </div>
         </div>
