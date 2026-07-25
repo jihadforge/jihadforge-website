@@ -296,22 +296,9 @@ export default function Home() {
             </p>
           </div>
 
-          <form className="flex flex-col justify-center">
-            <label htmlFor="email" className="text-xs font-bold uppercase tracking-[0.26em] text-black/40">
-              Email address
-            </label>
-            <div className="mt-3 flex border-b-2 border-black">
-              <input
-                id="email"
-                type="email"
-                placeholder="YOU@EMAIL.COM"
-                className="min-w-0 flex-1 bg-transparent py-4 text-lg font-semibold uppercase tracking-[0.08em] outline-none placeholder:text-black/22"
-              />
-              <button type="submit" className="flex items-center gap-3 px-3 text-xs font-bold uppercase tracking-[0.2em]">
-                Join <Arrow />
-              </button>
-            </div>
-          </form>
+          <div className="flex flex-col justify-center">
+  <div className="klaviyo-form-V7wRyN"></div>
+</div>
         </div>
       </section>
 
