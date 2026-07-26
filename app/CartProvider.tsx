@@ -45,8 +45,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const savedCart = localStorage.getItem("jihadforge-cart");
 
       if (savedCart) {
-        setItems(JSON.parse(savedCart));
-      }
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  setItems(JSON.parse(savedCart));
+}
     } catch {
       localStorage.removeItem("jihadforge-cart");
     } finally {
