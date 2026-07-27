@@ -1,22 +1,75 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+
 import { useCart } from "../CartProvider";
+
+type CheckoutResponse = {
+  url?: string;
+  error?: string;
+};
 
 export default function CheckoutPage() {
   const { items, subtotal } = useCart();
-  const [submitted, setSubmitted] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const [email, setEmail] = useState("");
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    // Test checkout only.
-    // No information is currently saved or sent anywhere.
-    setSubmitted(true);
+    if (items.length === 0 || isRedirecting) {
+      return;
+    }
+
+    setIsRedirecting(true);
+    setErrorMessage("");
+
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          items: items.map((item) => ({
+            productId: item.productId,
+            size: item.size,
+            color: item.color,
+            quantity: item.quantity,
+          })),
+        }),
+      });
+
+      const data = (await response.json()) as CheckoutResponse;
+
+      if (!response.ok) {
+        throw new Error(data.error || "Unable to start checkout.");
+      }
+
+      if (!data.url) {
+        throw new Error("Stripe did not return a checkout URL.");
+      }
+
+      window.location.assign(data.url);
+    } catch (error) {
+      console.error("Checkout error:", error);
+
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to start checkout. Please try again."
+      );
+
+      setIsRedirecting(false);
+    }
   }
 
-  if (items.length === 0 && !submitted) {
+  if (items.length === 0) {
     return (
       <main className="min-h-screen bg-[#080808] px-5 py-28 text-white sm:px-8">
         <div className="mx-auto max-w-3xl border border-white/10 bg-[#0d0d0d] p-8 text-center sm:p-12">
@@ -43,54 +96,21 @@ export default function CheckoutPage() {
     );
   }
 
-  if (submitted) {
-    return (
-      <main className="min-h-screen bg-[#080808] px-5 py-28 text-white sm:px-8">
-        <div className="mx-auto max-w-3xl border border-white/10 bg-[#0d0d0d] p-8 text-center sm:p-12">
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-white/35">
-            Test checkout
-          </p>
-
-          <h1 className="mt-4 text-4xl font-bold uppercase">
-            Checkout form completed
-          </h1>
-
-          <p className="mx-auto mt-5 max-w-xl leading-7 text-white/50">
-            This was only a test. No payment was collected and no customer
-            information was saved or sent.
-          </p>
-
-          <p className="mx-auto mt-3 max-w-xl leading-7 text-white/50">
-            Real payments, order storage, and confirmation emails will be added
-            during Phase 2.
-          </p>
-
-          <Link
-            href="/"
-            className="mt-8 inline-flex bg-white px-7 py-4 text-sm font-bold uppercase tracking-[0.16em] text-black transition hover:bg-white/80"
-          >
-            Return home
-          </Link>
-        </div>
-      </main>
-    );
-  }
-
   return (
     <main className="min-h-screen bg-[#080808] px-5 py-24 text-white sm:px-8">
       <div className="mx-auto max-w-[1200px]">
         <div className="mb-12">
           <p className="text-xs font-bold uppercase tracking-[0.35em] text-white/35">
-            Test checkout
+            Secure checkout
           </p>
 
           <h1 className="mt-4 text-5xl font-bold uppercase tracking-[-0.04em] sm:text-7xl">
-            Complete your details
+            Complete your order
           </h1>
 
           <p className="mt-5 max-w-2xl leading-7 text-white/45">
-            This checkout page is currently for testing only. Payment and order
-            submission will be connected during Phase 2.
+            Review your order and continue to Stripe to enter your payment,
+            phone number, billing details, and shipping address securely.
           </p>
         </div>
 
@@ -98,151 +118,55 @@ export default function CheckoutPage() {
           onSubmit={handleSubmit}
           className="grid gap-10 lg:grid-cols-[1fr_420px]"
         >
-          <section className="border border-white/10 bg-[#0d0d0d] p-6 sm:p-8">
+          <section className="h-fit border border-white/10 bg-[#0d0d0d] p-6 sm:p-8">
             <h2 className="text-2xl font-bold uppercase">
               Contact information
             </h2>
 
-            <div className="mt-7 grid gap-5 sm:grid-cols-2">
-              <label className="sm:col-span-2">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-white/45">
-                  Email address
-                </span>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-white/40">
+              Stripe will use this email for your payment receipt. Your shipping
+              and payment details will be collected on Stripe&apos;s secure
+              checkout page.
+            </p>
 
-                <input
-                  type="email"
-                  name="email"
-                  required
-                  autoComplete="email"
-                  className="w-full border border-white/15 bg-black px-4 py-3 text-white outline-none transition placeholder:text-white/20 focus:border-white/60"
-                  placeholder="customer@email.com"
-                />
-              </label>
+            <label className="mt-7 block">
+              <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-white/45">
+                Email address
+              </span>
 
-              <label>
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-white/45">
-                  First name
-                </span>
+              <input
+                type="email"
+                name="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                disabled={isRedirecting}
+                className="w-full border border-white/15 bg-black px-4 py-3 text-white outline-none transition placeholder:text-white/20 focus:border-white/60 disabled:cursor-not-allowed disabled:opacity-60"
+                placeholder="customer@email.com"
+              />
+            </label>
 
-                <input
-                  type="text"
-                  name="firstName"
-                  required
-                  autoComplete="given-name"
-                  className="w-full border border-white/15 bg-black px-4 py-3 text-white outline-none transition placeholder:text-white/20 focus:border-white/60"
-                />
-              </label>
+            <div className="mt-8 border border-white/10 bg-black/40 p-5">
+              <h3 className="text-sm font-bold uppercase tracking-[0.16em]">
+                What happens next
+              </h3>
 
-              <label>
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-white/45">
-                  Last name
-                </span>
-
-                <input
-                  type="text"
-                  name="lastName"
-                  required
-                  autoComplete="family-name"
-                  className="w-full border border-white/15 bg-black px-4 py-3 text-white outline-none transition placeholder:text-white/20 focus:border-white/60"
-                />
-              </label>
-
-              <label className="sm:col-span-2">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-white/45">
-                  Phone number
-                </span>
-
-                <input
-                  type="tel"
-                  name="phone"
-                  required
-                  autoComplete="tel"
-                  className="w-full border border-white/15 bg-black px-4 py-3 text-white outline-none transition placeholder:text-white/20 focus:border-white/60"
-                />
-              </label>
+              <p className="mt-3 text-sm leading-6 text-white/40">
+                You will be redirected to Stripe to enter your card information,
+                phone number, and shipping address. JihadForge never receives
+                your full card number.
+              </p>
             </div>
 
-            <h2 className="mt-12 text-2xl font-bold uppercase">
-              Shipping address
-            </h2>
-
-            <div className="mt-7 grid gap-5 sm:grid-cols-2">
-              <label className="sm:col-span-2">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-white/45">
-                  Street address
-                </span>
-
-                <input
-                  type="text"
-                  name="address"
-                  required
-                  autoComplete="street-address"
-                  className="w-full border border-white/15 bg-black px-4 py-3 text-white outline-none transition placeholder:text-white/20 focus:border-white/60"
-                />
-              </label>
-
-              <label>
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-white/45">
-                  City
-                </span>
-
-                <input
-                  type="text"
-                  name="city"
-                  required
-                  autoComplete="address-level2"
-                  className="w-full border border-white/15 bg-black px-4 py-3 text-white outline-none transition placeholder:text-white/20 focus:border-white/60"
-                />
-              </label>
-
-              <label>
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-white/45">
-                  State or province
-                </span>
-
-                <input
-                  type="text"
-                  name="state"
-                  required
-                  autoComplete="address-level1"
-                  className="w-full border border-white/15 bg-black px-4 py-3 text-white outline-none transition placeholder:text-white/20 focus:border-white/60"
-                />
-              </label>
-
-              <label>
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-white/45">
-                  ZIP or postal code
-                </span>
-
-                <input
-                  type="text"
-                  name="postalCode"
-                  required
-                  autoComplete="postal-code"
-                  className="w-full border border-white/15 bg-black px-4 py-3 text-white outline-none transition placeholder:text-white/20 focus:border-white/60"
-                />
-              </label>
-
-              <label>
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-white/45">
-                  Country
-                </span>
-
-                <select
-                  name="country"
-                  required
-                  autoComplete="country-name"
-                  defaultValue="United States"
-                  className="w-full border border-white/15 bg-black px-4 py-3 text-white outline-none transition focus:border-white/60"
-                >
-                  <option>United States</option>
-                  <option>United Kingdom</option>
-                  <option>Canada</option>
-                  <option>Australia</option>
-                  <option>Other</option>
-                </select>
-              </label>
-            </div>
+            {errorMessage ? (
+              <div
+                role="alert"
+                className="mt-6 border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm leading-6 text-red-200"
+              >
+                {errorMessage}
+              </div>
+            ) : null}
           </section>
 
           <aside className="h-fit border border-white/10 bg-[#0d0d0d] p-6 sm:p-8">
@@ -250,13 +174,18 @@ export default function CheckoutPage() {
 
             <div className="mt-6 divide-y divide-white/10 border-y border-white/10">
               {items.map((item) => (
-                <div key={item.id} className="flex gap-4 py-5">
+                <div
+                  key={`${item.productId}-${item.size}-${item.color}`}
+                  className="flex gap-4 py-5"
+                >
                   {item.image ? (
-                    <div className="h-24 w-20 shrink-0 border border-white/10 bg-black p-2">
-                      <img
+                    <div className="relative h-24 w-20 shrink-0 border border-white/10 bg-black p-2">
+                      <Image
                         src={item.image}
                         alt={item.name}
-                        className="h-full w-full object-contain"
+                        fill
+                        sizes="80px"
+                        className="object-contain p-2"
                       />
                     </div>
                   ) : null}
@@ -290,15 +219,16 @@ export default function CheckoutPage() {
             </div>
 
             <p className="mt-3 text-sm leading-6 text-white/35">
-              Shipping and taxes will be calculated when the real payment
-              system is connected.
+              Shipping and taxes, when applicable, will be shown on Stripe
+              before payment.
             </p>
 
             <button
               type="submit"
-              className="mt-7 w-full bg-white px-6 py-4 text-sm font-bold uppercase tracking-[0.17em] text-black transition hover:bg-white/80"
+              disabled={isRedirecting}
+              className="mt-7 w-full bg-white px-6 py-4 text-sm font-bold uppercase tracking-[0.17em] text-black transition enabled:hover:bg-white/80 disabled:cursor-not-allowed disabled:bg-white/40"
             >
-              Test checkout
+              {isRedirecting ? "Redirecting to Stripe..." : "Continue to payment"}
             </button>
 
             <Link

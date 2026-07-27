@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { PRODUCTS } from "@/lib/products";
 import { useCart } from "../../CartProvider";
 
 const sizes = ["S", "M", "L", "XL", "2XL"];
@@ -12,6 +13,8 @@ const colors = [
   { name: "Grey", hex: "#B8B8B8" },
   { name: "Baby Blue", hex: "#CBE9F8" },
 ];
+
+const product = PRODUCTS["awrah-forge-shorts"];
 
 export default function AwrahForgeShortsPage() {
   const [selectedSize, setSelectedSize] = useState("");
@@ -26,13 +29,14 @@ export default function AwrahForgeShortsPage() {
     }
 
     addItem({
-      id: "awrah-forge-shorts",
-      name: "Awrah Forge Shorts",
-      price: 44.99,
+      id: product.id,
+      productId: product.id,
+      name: product.name,
+      price: product.price,
       size: selectedSize,
       color: selectedColor,
       quantity: 1,
-      image: "/jihadforge-logo.png",
+      image: product.image,
     });
 
     setAddedToCart(true);
@@ -71,7 +75,7 @@ export default function AwrahForgeShortsPage() {
               <div className="absolute bottom-0 right-0 h-[86%] w-[47%] skew-x-[4deg] border border-white/10 bg-gradient-to-b from-[#242424] to-[#0d0d0d]" />
 
               <img
-                src="/jihadforge-logo.png"
+                src={product.image}
                 alt="JihadForge logo on Awrah Forge Shorts"
                 className="absolute bottom-[14%] left-[10%] z-10 w-16 opacity-75"
               />
@@ -84,10 +88,12 @@ export default function AwrahForgeShortsPage() {
             </p>
 
             <h1 className="mt-5 text-5xl font-bold uppercase leading-[0.9] tracking-[-0.04em] sm:text-7xl">
-              Awrah Forge Shorts
+              {product.name}
             </h1>
 
-            <p className="mt-6 text-2xl font-semibold">$44.99</p>
+            <p className="mt-6 text-2xl font-semibold">
+              ${product.price.toFixed(2)}
+            </p>
 
             <p className="mt-7 max-w-xl text-lg leading-8 text-white/50">
               Modest-performance shorts engineered for training, running,
