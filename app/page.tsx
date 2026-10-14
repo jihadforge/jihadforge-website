@@ -1,4 +1,5 @@
 import { Rajdhani } from "next/font/google";
+import { getDatabaseProducts } from "@/lib/products-db";
 import { products } from "./products/data";
 
 const rajdhani = Rajdhani({
@@ -43,7 +44,37 @@ function Arrow() {
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  const databaseProducts = await getDatabaseProducts();
+
+  const homepageProducts = products.map((product) => {
+    const databaseProduct = databaseProducts.find(
+      (item) => item.slug === product.slug
+    );
+
+    const featuredImage =
+      databaseProduct?.product_images.find(
+        (image) => image.is_featured
+      ) ??
+      [...(databaseProduct?.product_images ?? [])].sort(
+        (firstImage, secondImage) =>
+          firstImage.position - secondImage.position
+      )[0];
+
+    return {
+      ...product,
+      name: databaseProduct?.name ?? product.name,
+      description:
+        databaseProduct?.description ?? product.description,
+      price: databaseProduct
+        ? `$${(databaseProduct.price_amount / 100).toFixed(2)}`
+        : product.price,
+      available: databaseProduct
+        ? databaseProduct.status === "active"
+        : product.available,
+      imageUrl: featuredImage?.image_url ?? null,
+    };
+  });
   return (
     <main
       className={`${rajdhani.className} min-h-screen bg-[#080808] text-white`}
@@ -107,7 +138,7 @@ export default function Home() {
               </div>
 
               <img
-                src="/jihadforge-logo.png"
+                src="/brand/jf-logo-white.png"
                 alt="JihadForge logo"
                 className="relative z-10 w-[68%] object-contain drop-shadow-[0_28px_45px_rgba(0,0,0,.8)]"
               />
@@ -155,7 +186,7 @@ export default function Home() {
           </div>
 
           <div className="grid border-l border-t border-white/10 md:grid-cols-3">
-            {products.map((product, index) => (
+            {homepageProducts.map((product, index) => (
               <article
                 key={product.slug}
                 className="group border-b border-r border-white/10 bg-[#0d0d0d]"
@@ -169,21 +200,29 @@ export default function Home() {
                       0{index + 1}
                     </span>
 
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="relative h-[62%] w-[54%] transition duration-500 group-hover:scale-[1.035]">
-                        <div className="absolute inset-x-[8%] top-0 h-[16%] border border-white/15 bg-[#252525]" />
+                    {product.imageUrl ? (
+  <img
+    src={product.imageUrl}
+    alt={product.name}
+    className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.035]"
+  />
+) : (
+  <div className="absolute inset-0 flex items-center justify-center">
+    <div className="relative h-[62%] w-[54%] transition duration-500 group-hover:scale-[1.035]">
+      <div className="absolute inset-x-[8%] top-0 h-[16%] border border-white/15 bg-[#252525]" />
 
-                        <div className="absolute bottom-0 left-0 h-[86%] w-[47%] skew-x-[-4deg] border border-white/10 bg-gradient-to-b from-[#242424] to-[#0d0d0d]" />
+      <div className="absolute bottom-0 left-0 h-[86%] w-[47%] skew-x-[-4deg] border border-white/10 bg-gradient-to-b from-[#242424] to-[#0d0d0d]" />
 
-                        <div className="absolute bottom-0 right-0 h-[86%] w-[47%] skew-x-[4deg] border border-white/10 bg-gradient-to-b from-[#242424] to-[#0d0d0d]" />
+      <div className="absolute bottom-0 right-0 h-[86%] w-[47%] skew-x-[4deg] border border-white/10 bg-gradient-to-b from-[#242424] to-[#0d0d0d]" />
 
-                        <img
-                          src="/jihadforge-logo.png"
-                          alt=""
-                          className="absolute bottom-[14%] left-[10%] z-10 w-12 opacity-75"
-                        />
-                      </div>
-                    </div>
+      <img
+        src="/brand/jf-logo-white.png"
+        alt=""
+        className="absolute bottom-[14%] left-[10%] z-10 w-12 opacity-75"
+      />
+    </div>
+  </div>
+)}
                   </a>
                 ) : (
                   <div className="relative aspect-[4/5] overflow-hidden border-b border-white/10 bg-[radial-gradient(circle_at_50%_34%,#303030_0%,#151515_42%,#090909_76%)]">
@@ -200,7 +239,7 @@ export default function Home() {
                         <div className="absolute bottom-0 right-0 h-[86%] w-[47%] skew-x-[4deg] border border-white/10 bg-gradient-to-b from-[#242424] to-[#0d0d0d]" />
 
                         <img
-                          src="/jihadforge-logo.png"
+                          src="/brand/jf-logo-white.png"
                           alt=""
                           className="absolute bottom-[14%] left-[10%] z-10 w-12 opacity-75"
                         />
@@ -254,7 +293,7 @@ export default function Home() {
       >
         <div className="absolute -right-16 -top-20 opacity-[0.035]">
           <img
-            src="/jihadforge-logo.png"
+            src="/brand/jf-logo-white.png"
             alt=""
             className="w-[760px]"
           />
@@ -295,7 +334,7 @@ export default function Home() {
         <div className="mx-auto grid max-w-[1400px] gap-14 px-5 py-24 sm:px-8 lg:grid-cols-[.9fr_1.1fr] lg:px-12 lg:py-32">
           <div className="flex min-h-[500px] items-center justify-center border border-white/10 bg-[linear-gradient(145deg,#151515,#090909)] p-10">
             <img
-              src="/jihadforge-logo.png"
+              src="/brand/jf-logo-white.png"
               alt="JihadForge logo"
               className="w-[78%] max-w-[480px]"
             />
@@ -364,7 +403,7 @@ export default function Home() {
           <div className="flex flex-col justify-between gap-10 border-b border-white/10 pb-10 sm:flex-row">
             <div className="flex items-center gap-4">
               <img
-                src="/jihadforge-logo.png"
+                src="/brand/jf-logo-white.png"
                 alt="JihadForge"
                 className="h-12 w-auto"
               />
@@ -380,23 +419,63 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-x-8 gap-y-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
-              <a href="#shop" className="hover:text-white">
-                Shop
-              </a>
+            <div className="grid gap-8 text-xs font-semibold uppercase tracking-[0.18em] text-white/45 sm:grid-cols-2 lg:grid-cols-4">
+  <div>
+    <p className="mb-4 text-white">Shop</p>
 
-              <a href="#mission" className="hover:text-white">
-                Mission
-              </a>
+    <div className="space-y-3">
+      <a href="#shop" className="block hover:text-white">
+        Collection
+      </a>
 
-              <a href="#about" className="hover:text-white">
-                About
-              </a>
+      <a href="/faq" className="block hover:text-white">
+        FAQ
+      </a>
+    </div>
+  </div>
 
-              <a href="#" className="hover:text-white">
-                Instagram
-              </a>
-            </div>
+  <div>
+    <p className="mb-4 text-white">Company</p>
+
+    <div className="space-y-3">
+      <a href="#about" className="block hover:text-white">
+        About
+      </a>
+
+      <a href="/contact" className="block hover:text-white">
+        Contact
+      </a>
+    </div>
+  </div>
+
+  <div>
+    <p className="mb-4 text-white">Support</p>
+
+    <div className="space-y-3">
+      <a href="/shipping" className="block hover:text-white">
+        Shipping
+      </a>
+
+      <a href="/returns" className="block hover:text-white">
+        Returns
+      </a>
+    </div>
+  </div>
+
+  <div>
+    <p className="mb-4 text-white">Legal</p>
+
+    <div className="space-y-3">
+      <a href="/privacy" className="block hover:text-white">
+        Privacy
+      </a>
+
+      <a href="/terms" className="block hover:text-white">
+        Terms
+      </a>
+    </div>
+  </div>
+</div>
           </div>
 
           <div className="flex flex-col justify-between gap-3 pt-6 text-[10px] uppercase tracking-[0.2em] text-white/22 sm:flex-row">

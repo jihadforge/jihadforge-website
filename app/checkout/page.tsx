@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 
@@ -180,13 +179,11 @@ export default function CheckoutPage() {
                 >
                   {item.image ? (
                     <div className="relative h-24 w-20 shrink-0 border border-white/10 bg-black p-2">
-                      <Image
-                        src={item.image}
-                        alt={item.name}
-                        fill
-                        sizes="80px"
-                        className="object-contain p-2"
-                      />
+                     <img
+  src={item.image}
+  alt={item.name}
+  className="h-full w-full object-cover"
+/>
                     </div>
                   ) : null}
 
