@@ -14,6 +14,7 @@ import {
 } from "../actions-images";
 import StatusBadge from "@/app/components/admin/StatusBadge";
 import { getDatabaseProduct } from "@/lib/products-db";
+import { updateVariantStock } from "./inventory-actions";
 
 type ProductPageProps = {
   params: Promise<{
@@ -322,39 +323,52 @@ export default async function ProductPage({
                 No variants yet.
               </div>
             ) : (
-              product.product_variants.map(
-                (variant: {
-                  id: string;
-                  color: string;
-                  size: string;
-                  inventory_quantity: number | null;
-                }) => (
-                  <div
-                    key={variant.id}
-                    className="flex items-center justify-between border-b p-5 last:border-b-0"
-                  >
-                    <div>
-                      <p className="font-semibold">
-                        {variant.color}
-                      </p>
+              
 
-                      <p className="text-sm text-neutral-500">
-                        Size {variant.size}
-                      </p>
-                    </div>
+product.product_variants.map(
+  (variant: {
+    id: string;
+    color: string;
+    size: string;
+    inventory_quantity: number | null;
+  }) => (
+    <form
+      key={variant.id}
+      action={updateVariantStock}
+      className="flex items-center justify-between gap-4 border-b p-5 last:border-b-0"
+    >
+      <input type="hidden" name="variantId" value={variant.id} />
+      <input type="hidden" name="productId" value={product.id} />
+      <input type="hidden" name="productSlug" value={product.slug} />
 
-                    <div className="text-right">
-                      <p className="font-medium">
-                        {variant.inventory_quantity ?? 0}
-                      </p>
+      <div>
+        <p className="font-semibold">{variant.color}</p>
+        <p className="text-sm text-neutral-500">
+          Size {variant.size}
+        </p>
+      </div>
 
-                      <p className="text-sm text-neutral-500">
-                        in stock
-                      </p>
-                    </div>
-                  </div>
-                )
-              )
+      <div className="flex items-center gap-2">
+        <input
+          type="number"
+          name="quantity"
+          min="0"
+          step="1"
+          required
+          defaultValue={variant.inventory_quantity ?? 0}
+          className="w-20 rounded-lg border border-neutral-300 px-3 py-2 text-center text-sm"
+        />
+
+        <button
+          type="submit"
+          className="rounded-lg bg-black px-3 py-2 text-sm font-semibold text-white hover:bg-neutral-800"
+        >
+          Save Stock
+        </button>
+      </div>
+    </form>
+  )
+)
             )}
           </div>
         </div>

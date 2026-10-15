@@ -1,5 +1,6 @@
 "use client";
 
+import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -34,7 +35,18 @@ const navigation = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+async function handleLogout() {
+  const supabase = createClient();
 
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
+    alert("Unable to log out. Please try again.");
+    return;
+  }
+
+  window.location.replace("/login");
+}
   function isActive(href: string) {
     if (href === "/admin") {
       return pathname === "/admin";
@@ -94,11 +106,12 @@ export default function Sidebar() {
 
       <div className="border-t border-neutral-800 p-4">
         <button
-          type="button"
-          className="w-full rounded-lg bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-neutral-200"
-        >
-          Logout
-        </button>
+  type="button"
+  onClick={handleLogout}
+  className="w-full rounded-lg bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-neutral-200"
+>
+  Logout
+</button>
       </div>
     </aside>
   );
