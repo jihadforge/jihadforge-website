@@ -31,6 +31,13 @@ function formatMoney(
   }).format(amount / 100);
 }
 
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;",
+    '"': "&quot;", "'": "&#39;",
+  })[char] ?? char);
+}
+
 export async function POST(request: Request) {
   const webhookSecret =
     process.env.STRIPE_WEBHOOK_SECRET;
@@ -226,6 +233,7 @@ export async function POST(request: Request) {
             {
               onConflict:
                 "stripe_session_id",
+              ignoreDuplicates: true,
             }
           );
 
@@ -274,7 +282,34 @@ export async function POST(request: Request) {
        * and inventory update have already
        * succeeded.
        */
+      // Atomically reserve the confirmation email. A conditional UPDATE
+      // prevents two concurrent webhook deliveries from both sending it.
+      // Claims are intentionally not released automatically after failures:
+      // the provider might have accepted the email before a network error.
+      let emailClaimed = false;
       if (customerEmail) {
+        const { data: claimedRows, error: claimError } =
+          await supabaseAdmin
+            .from("orders")
+            .update({
+              confirmation_email_claimed_at:
+                new Date().toISOString(),
+            })
+            .eq("stripe_session_id", session.id)
+            .is("confirmation_email_claimed_at", null)
+            .is("confirmation_email_sent_at", null)
+            .eq("inventory_deducted", true)
+            .select("stripe_session_id");
+
+        if (claimError) {
+          // A retry can safely attempt the claim again.
+          console.error("Email claim failed:", claimError);
+          return new Response("Failed to claim email", { status: 500 });
+        }
+        emailClaimed = (claimedRows?.length ?? 0) > 0;
+      }
+
+      if (customerEmail && emailClaimed) {
         try {
           const itemRows = items
             .map((item) => {
@@ -301,7 +336,7 @@ export async function POST(request: Request) {
                       font-weight:600;
                       color:#111111;
                     ">
-                      ${item.name ?? "JihadForge Product"}
+                      ${escapeHtml(item.name ?? "JihadForge Product")}
                     </div>
 
                     <div style="
@@ -309,7 +344,7 @@ export async function POST(request: Request) {
                       font-size:14px;
                       color:#666666;
                     ">
-                      ${details}
+                      ${escapeHtml(details)}
                     </div>
                   </td>
 
@@ -432,7 +467,7 @@ export async function POST(request: Request) {
                                   font-size:16px;
                                   line-height:1.6;
                                 ">
-                                  Assalamu Alaikum ${customerName},
+                                  Assalamu Alaikum ${escapeHtml(customerName)},
                                 </p>
 
                                 <p style="
@@ -591,10 +626,17 @@ export async function POST(request: Request) {
               emailError
             );
           } else {
-            console.log(
-              "Order confirmation email sent:",
-              customerEmail
-            );
+            const { error: markSentError } = await supabaseAdmin
+              .from("orders")
+              .update({
+                confirmation_email_sent_at: new Date().toISOString(),
+              })
+              .eq("stripe_session_id", session.id);
+
+            if (markSentError) {
+              console.error("Email sent, but status update failed:", markSentError);
+            }
+            console.log("Order confirmation email sent:", customerEmail);
           }
         } catch (emailError) {
           console.error(
@@ -602,11 +644,10 @@ export async function POST(request: Request) {
             emailError
           );
         }
+      } else if (!customerEmail) {
+        console.warn("No customer email found for order:", session.id);
       } else {
-        console.warn(
-          "No customer email found for order:",
-          session.id
-        );
+        console.log("Confirmation email already claimed or sent:", session.id);
       }
 
       console.log(
