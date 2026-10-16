@@ -51,10 +51,32 @@ export default function CheckoutPage() {
       }
 
       if (!data.url) {
-        throw new Error("Stripe did not return a checkout URL.");
-      }
+  throw new Error("Stripe did not return a checkout URL.");
+}
 
-      window.location.assign(data.url);
+const stripeUrl = new URL(data.url);
+const sessionId = stripeUrl.pathname
+  .split("/")
+  .filter(Boolean)
+  .pop();
+
+if (!sessionId || !sessionId.startsWith("cs_")) {
+  throw new Error("Stripe did not return a valid checkout session.");
+}
+
+sessionStorage.setItem(
+  `jihadforge-checkout-${sessionId}`,
+  JSON.stringify(
+    items.map((item) => ({
+      productId: item.productId,
+      size: item.size,
+      color: item.color,
+      quantity: item.quantity,
+    }))
+  )
+);
+
+window.location.assign(data.url);
     } catch (error) {
       console.error("Checkout error:", error);
 

@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -26,6 +27,7 @@ type CartContextType = {
   items: CartItem[];
   cartCount: number;
   subtotal: number;
+  cartLoaded: boolean;
   addItem: (item: CartItem) => void;
   removeItem: (id: string, size: string, color: string) => void;
   updateQuantity: (
@@ -35,6 +37,7 @@ type CartContextType = {
     quantity: number
   ) => void;
   clearCart: () => void;
+  removePurchasedItems: (purchasedItems: CartItem[]) => void;
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -119,6 +122,7 @@ function restoreCart(savedCart: string): CartItem[] {
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const cartLoaded = loaded;
 
   useEffect(() => {
     try {
@@ -207,9 +211,38 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  function clearCart() {
+    const clearCart = useCallback(() => {
     setItems([]);
-  }
+    localStorage.removeItem("jihadforge-cart");
+  }, []);
+  
+  const removePurchasedItems = useCallback(
+  (purchasedItems: CartItem[]) => {
+    setItems((currentItems) =>
+      currentItems.flatMap((item) => {
+        const purchasedQuantity = purchasedItems
+          .filter(
+            (purchased) =>
+              purchased.productId === item.productId &&
+              purchased.size === item.size &&
+              purchased.color === item.color
+          )
+          .reduce(
+            (total, purchased) => total + purchased.quantity,
+            0
+          );
+
+        const remainingQuantity =
+          item.quantity - purchasedQuantity;
+
+        return remainingQuantity > 0
+          ? [{ ...item, quantity: remainingQuantity }]
+          : [];
+      })
+    );
+  },
+  []
+);
 
   const cartCount = useMemo(
     () => items.reduce((total, item) => total + item.quantity, 0),
@@ -231,10 +264,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
         items,
         cartCount,
         subtotal,
+        cartLoaded,
         addItem,
         removeItem,
         updateQuantity,
         clearCart,
+        removePurchasedItems,
       }}
     >
       {children}
