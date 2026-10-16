@@ -47,7 +47,9 @@ function Arrow() {
 export default async function Home() {
   const databaseProducts = await getDatabaseProducts();
 
-  const homepageProducts = products.map((product) => {
+  const homepageProducts = products
+  .filter((product) => product.slug === "awrah-forge-shorts")
+  .map((product) => {
     const databaseProduct = databaseProducts.find(
       (item) => item.slug === product.slug
     );
@@ -185,7 +187,7 @@ export default async function Home() {
             </p>
           </div>
 
-          <div className="grid border-l border-t border-white/10 md:grid-cols-3">
+          <div className="grid max-w-md border-l border-t border-white/10">
             {homepageProducts.map((product, index) => (
               <article
                 key={product.slug}
