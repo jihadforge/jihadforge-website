@@ -1,7 +1,14 @@
+
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { PRODUCTS } from "@/lib/products";
 import { useCart } from "../../CartProvider";
@@ -10,6 +17,8 @@ type ProductImage = {
   id: string;
   image_url: string;
   is_featured: boolean;
+  is_color_main: boolean;
+  color: string | null;
   position: number;
 };
 
@@ -20,49 +29,120 @@ type ProductClientProps = {
 const sizes = ["S", "M", "L", "XL", "2XL"];
 
 const colors = [
-  {
-    name: "Black",
-    hex: "#000000",
-  },
-  {
-    name: "Sand",
-    hex: "#E7CCAA",
-  },
-  {
-    name: "Grey",
-    hex: "#B8B8B8",
-  },
-  {
-    name: "Baby Blue",
-    hex: "#CBE9F8",
-  },
+  { name: "Black", hex: "#000000" },
+  { name: "Sand", hex: "#E7CCAA" },
+  { name: "Grey", hex: "#B8B8B8" },
+  { name: "Olive Green", hex: "#667047" },
 ];
 
 const product = PRODUCTS["awrah-forge-shorts"];
 
+function normalizeColor(color: string | null) {
+  return (color ?? "").trim().toLowerCase().replace("gray", "grey");
+}
+
 export default function ProductClient({
   images,
 }: ProductClientProps) {
-  const firstImage = images[0]?.image_url ?? null;
+  const [selectedSize, setSelectedSize] = useState("");
+  const [selectedColor, setSelectedColor] = useState("");
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [addedToCart, setAddedToCart] = useState(false);
 
-  const [selectedImage, setSelectedImage] =
-    useState<string | null>(firstImage);
+  const touchStartX = useRef<number | null>(null);
 
-  const [selectedSize, setSelectedSize] =
-    useState("");
+  const galleryImages = useMemo(() => {
+    if (!selectedColor) {
+      return images;
+    }
 
-  const [selectedColor, setSelectedColor] =
-    useState("");
+    return images.filter(
+      (image) =>
+        normalizeColor(image.color) ===
+        normalizeColor(selectedColor)
+    );
+  }, [images, selectedColor]);
 
-  const [addedToCart, setAddedToCart] =
-    useState(false);
+  const mainImage = useMemo(() => {
+    if (!selectedColor) {
+      return images.find((image) => image.is_featured) ?? images[0];
+    }
+
+    return (
+      galleryImages.find((image) => image.is_color_main) ??
+      galleryImages[0]
+    );
+  }, [images, galleryImages, selectedColor]);
+
+  const currentImage = galleryImages[selectedIndex] ?? mainImage;
+  const currentImageUrl = currentImage?.image_url ?? null;
 
   const { addItem, cartCount } = useCart();
 
-  function handleAddToCart() {
-    if (!selectedSize || !selectedColor) {
-      return;
+  const changeImage = useCallback(
+    (direction: number) => {
+      if (galleryImages.length < 2) return;
+
+      setSelectedIndex((current) =>
+        (current + direction + galleryImages.length) %
+        galleryImages.length
+      );
+    },
+    [galleryImages.length]
+  );
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsFullscreen(false);
+      }
+
+      if (event.key === "ArrowLeft") {
+        changeImage(-1);
+      }
+
+      if (event.key === "ArrowRight") {
+        changeImage(1);
+      }
     }
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isFullscreen, changeImage]);
+
+  function selectColor(color: string) {
+    const matchingImages = images.filter(
+      (image) =>
+        normalizeColor(image.color) === normalizeColor(color)
+    );
+
+    const frontIndex = matchingImages.findIndex(
+      (image) => image.is_color_main
+    );
+
+    setSelectedColor(color);
+    setSelectedIndex(frontIndex >= 0 ? frontIndex : 0);
+    setAddedToCart(false);
+  }
+
+  function handleAddToCart() {
+    if (!selectedSize || !selectedColor) return;
+
+    const colorMainImage =
+      galleryImages.find((image) => image.is_color_main)
+        ?.image_url ??
+      galleryImages[0]?.image_url ??
+      product.image;
 
     addItem({
       id: product.id,
@@ -72,14 +152,28 @@ export default function ProductClient({
       size: selectedSize,
       color: selectedColor,
       quantity: 1,
-      image: selectedImage ?? product.image,
+      image: colorMainImage,
     });
 
     setAddedToCart(true);
+    window.setTimeout(() => setAddedToCart(false), 2000);
+  }
 
-    window.setTimeout(() => {
-      setAddedToCart(false);
-    }, 2000);
+  function handleTouchStart(event: React.TouchEvent) {
+    touchStartX.current = event.touches[0].clientX;
+  }
+
+  function handleTouchEnd(event: React.TouchEvent) {
+    if (touchStartX.current === null) return;
+
+    const distance =
+      event.changedTouches[0].clientX - touchStartX.current;
+
+    if (Math.abs(distance) > 50) {
+      changeImage(distance < 0 ? 1 : -1);
+    }
+
+    touchStartX.current = null;
   }
 
   return (
@@ -102,64 +196,88 @@ export default function ProductClient({
         </div>
 
         <section className="grid gap-12 py-14 lg:grid-cols-2 lg:items-start">
-          {/* Product images */}
           <div>
-            <div className="relative flex aspect-[4/5] items-center justify-center overflow-hidden border border-white/10 bg-[radial-gradient(circle_at_50%_34%,#303030_0%,#151515_42%,#090909_76%)]">
-              {selectedImage ? (
-                <img
-                  src={selectedImage}
-                  alt={product.name}
-                  className="h-full w-full object-cover"
-                />
+            <div
+              className="relative flex aspect-[4/5] items-center justify-center overflow-hidden border border-white/10 bg-[radial-gradient(circle_at_50%_34%,#303030_0%,#151515_42%,#090909_76%)]"
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+            >
+              {currentImageUrl ? (
+                <button
+                  type="button"
+                  onClick={() => setIsFullscreen(true)}
+                  className="h-full w-full cursor-zoom-in"
+                  aria-label="Open full-screen product image"
+                >
+                  <img
+                    src={currentImageUrl}
+                    alt={`${product.name} ${selectedColor}`}
+                    className="h-full w-full object-cover"
+                  />
+                </button>
               ) : (
                 <ProductPlaceholder />
               )}
+
+              {galleryImages.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => changeImage(-1)}
+                    aria-label="Previous image"
+                    className="absolute left-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-2xl hover:bg-black"
+                  >
+                    ‹
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => changeImage(1)}
+                    aria-label="Next image"
+                    className="absolute right-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-2xl hover:bg-black"
+                  >
+                    ›
+                  </button>
+                </>
+              )}
+
+              {currentImageUrl && (
+                <button
+                  type="button"
+                  onClick={() => setIsFullscreen(true)}
+                  className="absolute bottom-4 right-4 z-10 bg-black/75 px-4 py-2 text-xs font-bold uppercase tracking-widest hover:bg-black"
+                >
+                  ⛶ Expand
+                </button>
+              )}
             </div>
 
-            {images.length > 1 ? (
+            {galleryImages.length > 1 && (
               <div className="mt-4 grid grid-cols-4 gap-3 sm:grid-cols-5">
-                {images.map((image, index) => {
-                  const selected =
-                    selectedImage === image.image_url;
-
-                  return (
-                    <button
-                      key={image.id}
-                      type="button"
-                      onClick={() =>
-                        setSelectedImage(
-                          image.image_url
-                        )
-                      }
-                      aria-label={`View ${
-                        product.name
-                      } image ${index + 1}`}
-                      aria-pressed={selected}
-                      className={`relative aspect-square overflow-hidden border transition ${
-                        selected
-                          ? "border-white"
-                          : "border-white/15 hover:border-white/60"
-                      }`}
-                    >
-                      <img
-                        src={image.image_url}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-
-                      {image.is_featured ? (
-                        <span className="absolute bottom-1 left-1 bg-black/75 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.15em] text-white">
-                          Featured
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
+                {galleryImages.map((image, index) => (
+                  <button
+                    key={image.id}
+                    type="button"
+                    onClick={() => setSelectedIndex(index)}
+                    aria-label={`View image ${index + 1}`}
+                    aria-pressed={selectedIndex === index}
+                    className={`relative aspect-square overflow-hidden border transition ${
+                      selectedIndex === index
+                        ? "border-white"
+                        : "border-white/15 hover:border-white/60"
+                    }`}
+                  >
+                    <img
+                      src={image.image_url}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  </button>
+                ))}
               </div>
-            ) : null}
+            )}
           </div>
 
-          {/* Product information */}
           <div className="lg:sticky lg:top-10">
             <p className="text-xs font-bold uppercase tracking-[0.35em] text-white/35">
               Flagship Product
@@ -174,9 +292,8 @@ export default function ProductClient({
             </p>
 
             <p className="mt-7 max-w-xl text-lg leading-8 text-white/50">
-              Modest-performance shorts engineered for
-              training, running, swimming, and everyday
-              movement.
+              Modest-performance shorts engineered for training,
+              running, swimming, and everyday movement.
             </p>
 
             <div className="mt-10">
@@ -193,9 +310,7 @@ export default function ProductClient({
                       setSelectedSize(size);
                       setAddedToCart(false);
                     }}
-                    aria-pressed={
-                      selectedSize === size
-                    }
+                    aria-pressed={selectedSize === size}
                     className={`h-12 min-w-14 border px-4 text-sm font-bold transition ${
                       selectedSize === size
                         ? "border-white bg-white text-black"
@@ -220,21 +335,14 @@ export default function ProductClient({
                     type="button"
                     title={color.name}
                     aria-label={`Select ${color.name}`}
-                    aria-pressed={
-                      selectedColor === color.name
-                    }
-                    onClick={() => {
-                      setSelectedColor(color.name);
-                      setAddedToCart(false);
-                    }}
+                    aria-pressed={selectedColor === color.name}
+                    onClick={() => selectColor(color.name)}
                     className={`relative h-11 w-11 rounded-full border-2 transition duration-200 ${
                       selectedColor === color.name
                         ? "scale-110 border-white ring-2 ring-white/30 ring-offset-4 ring-offset-[#080808]"
                         : "border-white/20 hover:scale-105 hover:border-white/60"
                     }`}
-                    style={{
-                      backgroundColor: color.hex,
-                    }}
+                    style={{ backgroundColor: color.hex }}
                   />
                 ))}
               </div>
@@ -247,9 +355,7 @@ export default function ProductClient({
             <button
               type="button"
               onClick={handleAddToCart}
-              disabled={
-                !selectedSize || !selectedColor
-              }
+              disabled={!selectedSize || !selectedColor}
               className="mt-10 w-full bg-white px-7 py-4 text-sm font-bold uppercase tracking-[0.18em] text-black transition enabled:hover:bg-[#c8c8c8] disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-white/35 sm:w-auto"
             >
               {!selectedSize
@@ -267,15 +373,66 @@ export default function ProductClient({
               </h2>
 
               <p className="mt-4 max-w-xl text-sm leading-7 text-white/45">
-                Designed to provide modest coverage
-                without restricting movement. Built for
-                workouts, outdoor activity, swimming, and
-                everyday wear.
+                Designed to provide modest coverage without
+                restricting movement. Built for workouts,
+                outdoor activity, swimming, and everyday wear.
               </p>
             </div>
           </div>
         </section>
       </div>
+
+      {isFullscreen && currentImageUrl && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Full-screen product gallery"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+          <button
+            type="button"
+            onClick={() => setIsFullscreen(false)}
+            aria-label="Close full-screen gallery"
+            className="absolute right-5 top-5 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-white/15 text-3xl hover:bg-white/25"
+          >
+            ×
+          </button>
+
+          <img
+            src={currentImageUrl}
+            alt={`${product.name} ${selectedColor}`}
+            className="max-h-[90vh] max-w-[90vw] object-contain"
+          />
+
+          {galleryImages.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={() => changeImage(-1)}
+                aria-label="Previous full-screen image"
+                className="absolute left-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-3xl hover:bg-white/25 sm:left-8"
+              >
+                ‹
+              </button>
+
+              <button
+                type="button"
+                onClick={() => changeImage(1)}
+                aria-label="Next full-screen image"
+                className="absolute right-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-3xl hover:bg-white/25 sm:right-8"
+              >
+                ›
+              </button>
+            </>
+          )}
+
+          <p className="absolute bottom-6 text-xs font-bold uppercase tracking-widest text-white/60">
+            {selectedIndex + 1} / {galleryImages.length}
+          </p>
+        </div>
+      )}
     </main>
   );
 }

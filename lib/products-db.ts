@@ -1,3 +1,4 @@
+
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 
@@ -25,6 +26,8 @@ export type ProductImage = {
   id: string;
   image_url: string;
   is_featured: boolean;
+  is_color_main: boolean;
+  color: string | null;
   position: number;
 };
 
@@ -42,34 +45,38 @@ export type DatabaseProduct = {
   product_images: ProductImage[];
 };
 
+const productSelection = `
+  id,
+  slug,
+  name,
+  description,
+  price_amount,
+  currency,
+  status,
+  featured,
+  created_at,
+  product_variants (
+    id,
+    size,
+    color,
+    sku,
+    inventory_quantity,
+    active
+  ),
+  product_images (
+    id,
+    image_url,
+    is_featured,
+    is_color_main,
+    color,
+    position
+  )
+`;
+
 export async function getDatabaseProducts(): Promise<DatabaseProduct[]> {
   const { data, error } = await supabaseAdmin
     .from("products")
-    .select(`
-      id,
-      slug,
-      name,
-      description,
-      price_amount,
-      currency,
-      status,
-      featured,
-      created_at,
-      product_variants (
-        id,
-        size,
-        color,
-        sku,
-        inventory_quantity,
-        active
-      ),
-      product_images (
-        id,
-        image_url,
-        is_featured,
-        position
-      )
-    `)
+    .select(productSelection)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -85,31 +92,7 @@ export async function getDatabaseProduct(
 ): Promise<DatabaseProduct> {
   const { data, error } = await supabaseAdmin
     .from("products")
-    .select(`
-      id,
-      slug,
-      name,
-      description,
-      price_amount,
-      currency,
-      status,
-      featured,
-      created_at,
-      product_variants (
-        id,
-        size,
-        color,
-        sku,
-        inventory_quantity,
-        active
-      ),
-      product_images (
-        id,
-        image_url,
-        is_featured,
-        position
-      )
-    `)
+    .select(productSelection)
     .eq("slug", slug)
     .single();
 
