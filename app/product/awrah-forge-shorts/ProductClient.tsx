@@ -26,7 +26,7 @@ type ProductClientProps = {
   images: ProductImage[];
 };
 
-const sizes = ["S", "M", "L", "XL", "2XL"];
+const sizes = ["S", "M", "L", "XL"];
 
 const colors = [
   { name: "Black", hex: "#000000" },
