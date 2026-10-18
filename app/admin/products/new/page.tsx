@@ -87,7 +87,7 @@ export default function NewProductPage() {
               min="0"
               step="0.01"
               className="w-full rounded-lg border p-3"
-              placeholder="44.99"
+              placeholder="34.99"
             />
           </div>
 

@@ -3,7 +3,7 @@ export const products = [
     slug: "awrah-forge-shorts",
     name: "Awrah Forge Shorts",
     label: "Flagship Product",
-    price: "$44.99",
+    price: "$34.99",
     description:
       "Modest-performance shorts engineered for training, running, swimming, and everyday movement.",
     available: true,

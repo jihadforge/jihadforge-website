@@ -271,7 +271,7 @@ const metadata = product?.metadata ?? {};
                       Order confirmed
                     </h1>
                     <p style="font-size:16px;line-height:1.6;">
-                      Assalamu Alaikum ${escapeHtml(customerName)},
+                      As-salamu alaykum ${escapeHtml(customerName)},
                     </p>
                     <p style="color:#555;font-size:15px;line-height:1.6;">
                       Thank you for your order. We've received your payment
