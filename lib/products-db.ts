@@ -102,4 +102,4 @@ export async function getDatabaseProduct(
   }
 
   return data as DatabaseProduct;
-}
+} 

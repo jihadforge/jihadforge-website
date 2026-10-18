@@ -22,8 +22,17 @@ type ProductImage = {
   position: number;
 };
 
+type ProductVariant = {
+  id: string;
+  size: string;
+  color: string;
+  inventory_quantity: number;
+  active: boolean;
+};
+
 type ProductClientProps = {
   images: ProductImage[];
+  variants: ProductVariant[];
 };
 
 const sizes = ["S", "M", "L", "XL"];
@@ -43,6 +52,7 @@ function normalizeColor(color: string | null) {
 
 export default function ProductClient({
   images,
+  variants,
 }: ProductClientProps) {
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
@@ -79,6 +89,33 @@ export default function ProductClient({
   const currentImageUrl = currentImage?.image_url ?? null;
 
   const { addItem, cartCount } = useCart();
+  const selectedVariant = variants.find(
+  (variant) =>
+    variant.active &&
+    variant.size === selectedSize &&
+    normalizeColor(variant.color) === normalizeColor(selectedColor)
+);
+
+const remainingStock = selectedVariant?.inventory_quantity ?? 0;
+
+function isSizeAvailable(size: string) {
+  if (!selectedColor) {
+    return variants.some(
+      (variant) =>
+        variant.active &&
+        variant.size === size &&
+        variant.inventory_quantity > 0
+    );
+  }
+
+  return variants.some(
+    (variant) =>
+      variant.active &&
+      variant.size === size &&
+      normalizeColor(variant.color) === normalizeColor(selectedColor) &&
+      variant.inventory_quantity > 0
+  );
+}
 
   const changeImage = useCallback(
     (direction: number) => {
@@ -131,12 +168,30 @@ export default function ProductClient({
     );
 
     setSelectedColor(color);
+    setSelectedSize((currentSize) => {
+  const available = variants.some(
+    (variant) =>
+      variant.active &&
+      variant.size === currentSize &&
+      normalizeColor(variant.color) === normalizeColor(color) &&
+      variant.inventory_quantity > 0
+  );
+
+  return available ? currentSize : "";
+});
     setSelectedIndex(frontIndex >= 0 ? frontIndex : 0);
     setAddedToCart(false);
   }
 
   function handleAddToCart() {
-    if (!selectedSize || !selectedColor) return;
+    if (
+  !selectedSize ||
+  !selectedColor ||
+  !selectedVariant ||
+  remainingStock <= 0
+) {
+  return;
+}
 
     const colorMainImage =
       galleryImages.find((image) => image.is_color_main)
@@ -302,24 +357,31 @@ export default function ProductClient({
               </p>
 
               <div className="mt-4 flex flex-wrap gap-3">
-                {sizes.map((size) => (
-                  <button
-                    key={size}
-                    type="button"
-                    onClick={() => {
-                      setSelectedSize(size);
-                      setAddedToCart(false);
-                    }}
-                    aria-pressed={selectedSize === size}
-                    className={`h-12 min-w-14 border px-4 text-sm font-bold transition ${
-                      selectedSize === size
-                        ? "border-white bg-white text-black"
-                        : "border-white/20 hover:border-white"
-                    }`}
-                  >
-                    {size}
-                  </button>
-                ))}
+                {sizes.map((size) => {
+  const available = isSizeAvailable(size);
+
+  return (
+    <button
+      key={size}
+      type="button"
+      disabled={!available}
+      onClick={() => {
+        setSelectedSize(size);
+        setAddedToCart(false);
+      }}
+      aria-pressed={selectedSize === size}
+      className={`h-12 min-w-14 border px-4 text-sm font-bold transition ${
+        !available
+          ? "cursor-not-allowed border-white/10 text-white/20 line-through"
+          : selectedSize === size
+            ? "border-white bg-white text-black"
+            : "border-white/20 hover:border-white"
+      }`}
+    >
+      {size}
+    </button>
+  );
+})}
               </div>
             </div>
 
@@ -351,20 +413,36 @@ export default function ProductClient({
                 {selectedColor || "Select a color"}
               </p>
             </div>
-
+            
+            {selectedSize && selectedColor && (
+  <p className="mt-6 text-sm font-medium text-white/60">
+    {remainingStock <= 0
+      ? "Out of stock"
+      : remainingStock <= 5
+        ? `Only ${remainingStock} left in stock`
+        : "In stock"}
+  </p>
+)}
             <button
               type="button"
               onClick={handleAddToCart}
-              disabled={!selectedSize || !selectedColor}
+              disabled={
+  !selectedSize ||
+  !selectedColor ||
+  !selectedVariant ||
+  remainingStock <= 0
+}
               className="mt-10 w-full bg-white px-7 py-4 text-sm font-bold uppercase tracking-[0.18em] text-black transition enabled:hover:bg-[#c8c8c8] disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-white/35 sm:w-auto"
             >
               {!selectedSize
                 ? "Select a size"
                 : !selectedColor
                   ? "Select a color"
-                  : addedToCart
-                    ? "Added to cart"
-                    : "Add to cart"}
+                  : remainingStock <= 0
+                ? "Out of stock"
+                : addedToCart
+                ? "Added to cart"
+                : "Add to cart"}
             </button>
 
             <div className="mt-10 border-t border-white/10 pt-7">
