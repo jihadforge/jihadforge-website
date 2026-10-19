@@ -143,7 +143,9 @@ const metadata = product?.metadata ?? {};
       null;
 
     const customerName =
-      session.customer_details?.name ?? "Customer";
+  session.collected_information?.shipping_details?.name ||
+  session.customer_details?.name ||
+  "Customer";
 
     const currency = session.currency ?? "usd";
 
@@ -155,7 +157,9 @@ const metadata = product?.metadata ?? {};
           stripe_payment_intent_id: paymentIntent,
           customer_email: customerEmail,
           customer_name:
-            session.customer_details?.name ?? null,
+  session.collected_information?.shipping_details?.name ??
+  session.customer_details?.name ??
+  null,
           customer_phone:
             session.customer_details?.phone ?? null,
           shipping_address:
