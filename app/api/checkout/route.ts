@@ -155,9 +155,10 @@ lineItems.push({
   price_data: {
     currency: "usd",
     product_data: {
-      name: product.name,
-      description: `Size: ${item.size} | Color: ${item.color}`,
-      metadata: {
+  name: product.name,
+  description: `Size: ${item.size} | Color: ${item.color}`,
+  tax_code: "txcd_20030000",
+  metadata: {
         productId: product.id,
         size: item.size,
         color: item.color,
@@ -212,8 +213,9 @@ lineItems.push({
 
     const session = await stripe.checkout.sessions.create({
   mode: "payment",
+  automatic_tax: { enabled: true },
   payment_method_types: ["card"],
-      line_items: lineItems,
+  line_items: lineItems,
       expires_at: checkoutExpiresAt,
       client_reference_id: reservationId,
       metadata: {
